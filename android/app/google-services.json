@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "332225472991",
+    "project_id": "mydocs-d984c",
+    "storage_bucket": "mydocs-d984c.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:332225472991:android:f0e69b456058967ebcfc6a",
+        "android_client_info": {
+          "package_name": "com.ara.mydoc"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA87pPVS2eobrFChU804lXB55VzdVWWreo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
