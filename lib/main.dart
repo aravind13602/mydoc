@@ -16,6 +16,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'MyDoc',
+      debugShowCheckedModeBanner: false, // Remove the debug banner
+
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
