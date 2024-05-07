@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-// import 'package:doctrack/QRScanningScreen.dart';
 import 'package:mydoc/QRScanningScreen.dart'; // Import the QRScanningScreen
 
 class TrackScreen extends StatefulWidget {
@@ -62,8 +61,9 @@ class _TrackScreenState extends State<TrackScreen> {
                 print('Tracking document number: $documentNumber');
                 // Set some dummy data for demonstration
                 setState(() {
-                  from = 'Location A';
-                  to = 'Location B';
+                  from = 'HOD Cs';
+                  mid = 'Ass Registrar';
+                  to = 'Registrar';
                   showPath = true;
                 });
               },
@@ -102,7 +102,7 @@ class PathPainter extends CustomPainter {
     // Define starting point
     Offset startPoint = Offset(20, size.height / 2);
     // Define ending point
-    Offset endPoint = Offset(size.width - 20, size.height / 2);
+    Offset endPoint = Offset(size.width -  60, size.height / 2);
     // Define mid point
     Offset midPoint = Offset(size.width / 2, size.height / 2);
 
