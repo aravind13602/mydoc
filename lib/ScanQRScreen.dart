@@ -126,6 +126,9 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
     String documentNumber = documentNumberController.text;
     String to = toController.text;
 
+    // Check if the user is the same as the recipient
+    bool sameUser = _userName == to;
+
     // Find the document by its number
     var document = await collection?.findOne(mongo.where.eq('documentNumber', documentNumber));
     if (document != null) {
@@ -139,37 +142,76 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
       int counter = document['intermediate_counter'] ?? 0;
       counter++;
 
-      // Update the current document's intermediate field and status
-      await collection?.update(
-        mongo.where.eq('_id', document['_id']),
-        mongo.modify
-            .set('intermediate_$counter', to)
-            .set('intermediate_counter', counter)
-            .set('status', false), // Set status to false for outgoing
-      );
-      print('Outgoing document updated with new intermediate and status');
-
-      // Show dialog for successful outgoing form sent
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text("Outgoing Form Sent"),
-            actions: <Widget>[
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: Text("OK"),
+      if (sameUser) {
+        // Show dialog for accept/reject
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text("Accept or Reject?"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ElevatedButton(
+                    onPressed: () async {
+                      await updateDocumentStatus(document['_id'], true);
+                      Navigator.of(context).pop();
+                    },
+                    child: Text("Accept"),
+                  ),
+                  ElevatedButton(
+                    onPressed: () async {
+                      await updateDocumentStatus(document['_id'], false);
+                      Navigator.of(context).pop();
+                    },
+                    child: Text("Reject"),
+                  ),
+                ],
               ),
-            ],
-          );
-        },
-      );
+            );
+          },
+        );
+      } else {
+        // Update the current document's intermediate field and status
+        await collection?.update(
+          mongo.where.eq('_id', document['_id']),
+          mongo.modify
+              .set('intermediate_$counter', to)
+              .set('intermediate_counter', counter)
+              .set('status', false), // Set status to false for outgoing
+        );
+        print('Outgoing document updated with new intermediate and status');
+
+        // Show dialog for successful outgoing form sent
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text("Outgoing Form Sent"),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text("OK"),
+                ),
+              ],
+            );
+          },
+        );
+      }
     } else {
       // Handle case when document is not found
       print('Document not found');
     }
+  }
+
+  Future<void> updateDocumentStatus(documentId, bool accepted) async {
+    // Update the status based on the accept/reject choice
+    await collection?.update(
+      mongo.where.id(documentId),
+      mongo.modify.set('status', accepted ? 'Accepted' : 'Rejected'),
+    );
   }
 
 
