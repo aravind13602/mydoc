@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mydoc/QRScanningScreen.dart'; // Import the QRScanningScreen
+import 'package:mongo_dart/mongo_dart.dart' as mongo;
+import 'package:firebase_auth/firebase_auth.dart';
 
 class TrackScreen extends StatefulWidget {
   @override
@@ -11,15 +13,61 @@ class _TrackScreenState extends State<TrackScreen> {
 
   String from = '';
   String to = '';
-  String mid = '';
+  List<String> intermediates = [];
   bool showPath = false;
 
-  void addMidToDatabase(String newMid) {
-    // Assume you have a function to add mid to the database
-    // After adding mid to the database, update the tracking details
-    setState(() {
-      mid = newMid;
-    });
+  // MongoDB connection settings
+  final String connectionString =
+      'mongodb+srv://chandirasegaran:25032002@myangadi.bxernfz.mongodb.net/?retryWrites=true&w=majority&appName=MyAngadi';
+  mongo.Db? db;
+  mongo.DbCollection? collection;
+
+  @override
+  void initState() {
+    super.initState();
+    initDb();
+  }
+
+  void initDb() async {
+    db = await mongo.Db.create(connectionString);
+    await db!.open();
+    collection = db!.collection('mydoc');
+  }
+
+  @override
+  void dispose() {
+    db?.close();
+    super.dispose();
+  }
+
+  void trackDocument(String documentNumber) async {
+    var document = await collection?.findOne(mongo.where.eq('documentNumber', documentNumber));
+
+    if (document != null) {
+      setState(() {
+        from = document['from'] ?? '';
+        to = document['to'] ?? '';
+        intermediates = [];
+
+        int counter = document['intermediate_counter'] ?? 0;
+        for (int i = 1; i <= counter; i++) {
+          String intermediate = document['intermediate_$i'];
+          if (intermediate != null && !intermediates.contains(intermediate)) {
+            intermediates.add(intermediate);
+          }
+        }
+        showPath = true;
+      });
+    } else {
+      // Handle case when document is not found
+      setState(() {
+        from = '';
+        to = '';
+        intermediates = [];
+        showPath = false;
+      });
+      print('Document not found');
+    }
   }
 
   @override
@@ -58,14 +106,7 @@ class _TrackScreenState extends State<TrackScreen> {
               onPressed: () {
                 // Perform action to track document with document number
                 String documentNumber = documentNumberController.text;
-                print('Tracking document number: $documentNumber');
-                // Set some dummy data for demonstration
-                setState(() {
-                  from = 'HOD Cs';
-                  mid = 'Ass Registrar';
-                  to = 'Registrar';
-                  showPath = true;
-                });
+                trackDocument(documentNumber);
               },
               child: Text('Track'),
             ),
@@ -74,7 +115,7 @@ class _TrackScreenState extends State<TrackScreen> {
             if (showPath)
               Expanded(
                 child: CustomPaint(
-                  painter: PathPainter(from, to, mid),
+                  painter: PathPainter(from, to, intermediates),
                 ),
               ),
           ],
@@ -87,9 +128,9 @@ class _TrackScreenState extends State<TrackScreen> {
 class PathPainter extends CustomPainter {
   final String from;
   final String to;
-  final String mid;
+  final List<String> intermediates;
 
-  PathPainter(this.from, this.to, this.mid);
+  PathPainter(this.from, this.to, this.intermediates);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -101,42 +142,41 @@ class PathPainter extends CustomPainter {
 
     // Define starting point
     Offset startPoint = Offset(20, size.height / 2);
-    // Define ending point
-    Offset endPoint = Offset(size.width -  60, size.height / 2);
-    // Define mid point
-    Offset midPoint = Offset(size.width / 2, size.height / 2);
+
+    // Calculate positions for each point
+    List<Offset> points = [startPoint];
+    for (int i = 0; i < intermediates.length; i++) {
+      points.add(Offset(size.width * (i + 1) / (intermediates.length + 2), size.height / 2));
+    }
+    points.add(Offset(size.width - 60, size.height / 2));
 
     // Draw the straight line path
-    canvas.drawLine(startPoint, endPoint, paint);
+    for (int i = 0; i < points.length - 1; i++) {
+      canvas.drawLine(points[i], points[i + 1], paint);
+    }
 
-    // Draw circles for from, to, and mid locations
-    paint.color = Colors.green; // From color
-    canvas.drawCircle(startPoint, 8.0, paint);
-    paint.color = Colors.red; // To color
-    canvas.drawCircle(endPoint, 8.0, paint);
-    paint.color = Colors.orange; // Mid color
-    canvas.drawCircle(midPoint, 8.0, paint);
+    // Draw circles and text for each point
+    for (int i = 0; i < points.length; i++) {
+      String text = i == 0 ? from : (i == points.length - 1 ? to : intermediates[i - 1]);
+      paint.color = i == 0 ? Colors.green : (i == points.length - 1 ? Colors.red : Colors.orange);
+      canvas.drawCircle(points[i], 8.0, paint);
 
-    // Draw text for from, to, and mid locations
-    TextPainter(
-      text: TextSpan(text: from, style: TextStyle(color: Colors.green)),
-      textDirection: TextDirection.ltr,
-    )..layout(minWidth: 0, maxWidth: size.width - 40)
-      ..paint(canvas, startPoint - Offset(0, 20));
-    TextPainter(
-      text: TextSpan(text: to, style: TextStyle(color: Colors.red)),
-      textDirection: TextDirection.ltr,
-    )..layout(minWidth: 0, maxWidth: size.width - 40)
-      ..paint(canvas, endPoint - Offset(0, 20));
-    TextPainter(
-      text: TextSpan(text: mid, style: TextStyle(color: Colors.orange)),
-      textDirection: TextDirection.ltr,
-    )..layout(minWidth: 0, maxWidth: size.width - 40)
-      ..paint(canvas, midPoint - Offset(0, 20));
+      TextPainter(
+        text: TextSpan(text: text, style: TextStyle(color: paint.color)),
+        textDirection: TextDirection.ltr,
+      )..layout(minWidth: 0, maxWidth: size.width - 40)
+        ..paint(canvas, points[i] - Offset(0, 20));
+    }
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) {
     return true;
   }
+}
+
+void main() {
+  runApp(MaterialApp(
+    home: TrackScreen(),
+  ));
 }
