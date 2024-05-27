@@ -45,6 +45,7 @@ dependencies:
   cloud_firestore: ^4.17.3
   order_tracker: ^0.0.2
   permission_handler: ^10.2.0
+  vector_math: ^2.1.0
 
 dev_dependencies:
   flutter_test:

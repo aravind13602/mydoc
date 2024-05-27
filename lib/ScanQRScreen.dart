@@ -31,6 +31,7 @@
 //     db = await mongo.Db.create(connectionString);
 //     await db!.open();
 //     collection = db!.collection('mydoc');
+//     print('Database connected');
 //   }
 //
 //   void fetchUserName() async {
@@ -42,12 +43,14 @@
 //       setState(() {
 //         _userName = user.displayName?.split('@')[0] ?? user.email?.split('@')[0] ?? 'Unknown User';
 //       });
+//       print('User name: $_userName');
 //     } else {
 //       // If user is not signed in, handle accordingly
 //       // For now, let's set it as 'Unknown User'
 //       setState(() {
 //         _userName = 'Unknown User';
 //       });
+//       print('User is not signed in');
 //     }
 //   }
 //
@@ -65,6 +68,7 @@
 //       // Find the document by its number and get the last intermediate
 //       var document = await collection?.findOne(mongo.where.eq('documentNumber', documentNumber));
 //       if (document != null) {
+//         print('Document found: $document');
 //         // Get the last intermediate user
 //         String? lastIntermediate = document['intermediate_counter'] != null
 //             ? document['intermediate_${document['intermediate_counter']}']
@@ -76,6 +80,7 @@
 //             mongo.where.eq('_id', document['_id']),
 //             mongo.modify.set('status', true), // Set status to true for incoming
 //           );
+//           print('Status set to true for incoming');
 //         } else {
 //           // Increment the intermediate counter
 //           int counter = document['intermediate_counter'] ?? 0;
@@ -88,6 +93,7 @@
 //                 .set('intermediate_counter', counter)
 //                 .set('status', true), // Set status to true for incoming
 //           );
+//           print('Intermediate updated and status set to true');
 //         }
 //
 //         // Show dialog
@@ -107,6 +113,8 @@
 //             );
 //           },
 //         );
+//       } else {
+//         print('Document not found');
 //       }
 //     } else {
 //       // Show error message or handle accordingly if username is null
@@ -116,80 +124,48 @@
 //
 //   Future<void> handleOutgoingAction() async {
 //     String documentNumber = documentNumberController.text;
+//     String to = toController.text;
 //
 //     // Find the document by its number
 //     var document = await collection?.findOne(mongo.where.eq('documentNumber', documentNumber));
 //     if (document != null) {
-//       // Get the main "to" and check if it's the same as the login user
-//       String mainTo = document['to'];
-//       if (mainTo == _userName) {
-//         // Show options for accepted and rejected
-//         showDialog(
-//           context: context,
-//           builder: (BuildContext context) {
-//             return AlertDialog(
-//               title: Text("Outgoing Form"),
-//               content: Column(
-//                 mainAxisSize: MainAxisSize.min,
-//                 children: [
-//                   ElevatedButton(
-//                     onPressed: () async {
-//                       // Update status to accepted
-//                       await collection?.update(
-//                         mongo.where.eq('_id', document['_id']),
-//                         mongo.modify.set('status', 'accepted'),
-//                       );
-//                       Navigator.of(context).pop();
-//                     },
-//                     child: Text("Accept"),
-//                   ),
-//                   ElevatedButton(
-//                     onPressed: () async {
-//                       // Update status to rejected
-//                       await collection?.update(
-//                         mongo.where.eq('_id', document['_id']),
-//                         mongo.modify.set('status', 'rejected'),
-//                       );
-//                       Navigator.of(context).pop();
-//                     },
-//                     child: Text("Reject"),
-//                   ),
-//                 ],
-//               ),
-//             );
-//           },
-//         );
-//       } else {
-//         // Increment the intermediate counter
-//         int counter = document['intermediate_counter'] ?? 0;
-//         counter++;
-//         // Update the current document's intermediate field and status
-//         await collection?.update(
-//           mongo.where.eq('_id', document['_id']),
-//           mongo.modify
-//               .set('intermediate_$counter', _userName)
-//               .set('intermediate_counter', counter)
-//               .set('status', false), // Set status to false for outgoing
-//         );
+//       print('Document found: $document');
+//       // Get the last intermediate user
+//       String? lastIntermediate = document['intermediate_counter'] != null
+//           ? document['intermediate_${document['intermediate_counter']}']
+//           : null;
 //
-//         // Show dialog
-//         showDialog(
-//           context: context,
-//           builder: (BuildContext context) {
-//             return AlertDialog(
-//               title: Text("Outgoing Form Sent"),
-//               actions: <Widget>[
-//                 TextButton(
-//                   onPressed: () {
-//                     Navigator.of(context).pop();
-//                   },
-//                   child: Text("OK"),
-//                 ),
-//               ],
-//             );
-//           },
-//         );
-//       }
+//       // Increment the intermediate counter
+//       int counter = document['intermediate_counter'] ?? 0;
+//       counter++;
+//
+//       // Update the current document's intermediate field and status
+//       await collection?.update(
+//         mongo.where.eq('_id', document['_id']),
+//         mongo.modify
+//             .set('intermediate_$counter', to)
+//             .set('intermediate_counter', counter)
+//             .set('status', false), // Set status to false for outgoing
+//       );
+//       print('Outgoing document updated with new intermediate and status');
+//
+//       // Show dialog for successful outgoing form sent
+//       showDialog(
+//         context: context,
+//         builder: (BuildContext context) {
+//           return AlertDialog(
+//             title: Text("Outgoing Form Sent"),
+//             actions: <Widget>[
+//               TextButton(
+//                 onPressed: () {
+//                   Navigator.of(context).pop();
+//                 },
+//                 child: Text("OK"),
+//               ),
+//             ],
+//           );
+//         },
+//       );
 //     } else {
 //       // Handle case when document is not found
 //       print('Document not found');
@@ -243,7 +219,41 @@
 //                 Expanded(
 //                   child: ElevatedButton.icon(
 //                     onPressed: () async {
-//                       await handleOutgoingAction();
+//                       // Show the outgoing form dialog
+//                       showDialog(
+//                         context: context,
+//                         builder: (BuildContext context) {
+//                           return AlertDialog(
+//                             title: Text("Outgoing Form"),
+//                             content: Column(
+//                               mainAxisSize: MainAxisSize.min,
+//                               children: [
+//                                 TextFormField(
+//                                   controller: toController,
+//                                   decoration: InputDecoration(
+//                                     labelText: 'To:',
+//                                   ),
+//                                 ),
+//                               ],
+//                             ),
+//                             actions: <Widget>[
+//                               TextButton(
+//                                 onPressed: () {
+//                                   Navigator.of(context).pop();
+//                                 },
+//                                 child: Text("Cancel"),
+//                               ),
+//                               ElevatedButton(
+//                                 onPressed: () async {
+//                                   await handleOutgoingAction();
+//                                   Navigator.of(context).pop();
+//                                 },
+//                                 child: Text("Send"),
+//                               ),
+//                             ],
+//                           );
+//                         },
+//                       );
 //                     },
 //                     icon: Icon(Icons.arrow_upward),
 //                     label: Text('Outgoing'),
@@ -296,6 +306,7 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
     db = await mongo.Db.create(connectionString);
     await db!.open();
     collection = db!.collection('mydoc');
+    print('Database connected');
   }
 
   void fetchUserName() async {
@@ -307,12 +318,14 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
       setState(() {
         _userName = user.displayName?.split('@')[0] ?? user.email?.split('@')[0] ?? 'Unknown User';
       });
+      print('User name: $_userName');
     } else {
       // If user is not signed in, handle accordingly
       // For now, let's set it as 'Unknown User'
       setState(() {
         _userName = 'Unknown User';
       });
+      print('User is not signed in');
     }
   }
 
@@ -330,6 +343,7 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
       // Find the document by its number and get the last intermediate
       var document = await collection?.findOne(mongo.where.eq('documentNumber', documentNumber));
       if (document != null) {
+        print('Document found: $document');
         // Get the last intermediate user
         String? lastIntermediate = document['intermediate_counter'] != null
             ? document['intermediate_${document['intermediate_counter']}']
@@ -341,6 +355,7 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
             mongo.where.eq('_id', document['_id']),
             mongo.modify.set('status', true), // Set status to true for incoming
           );
+          print('Status set to true for incoming');
         } else {
           // Increment the intermediate counter
           int counter = document['intermediate_counter'] ?? 0;
@@ -353,6 +368,7 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
                 .set('intermediate_counter', counter)
                 .set('status', true), // Set status to true for incoming
           );
+          print('Intermediate updated and status set to true');
         }
 
         // Show dialog
@@ -372,6 +388,8 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
             );
           },
         );
+      } else {
+        print('Document not found');
       }
     } else {
       // Show error message or handle accordingly if username is null
@@ -386,191 +404,141 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
     // Find the document by its number
     var document = await collection?.findOne(mongo.where.eq('documentNumber', documentNumber));
     if (document != null) {
+      print('Document found: $document');
       // Get the last intermediate user
       String? lastIntermediate = document['intermediate_counter'] != null
           ? document['intermediate_${document['intermediate_counter']}']
           : null;
 
-      // Check if the "To" field matches either the current user, the last intermediate user, or the main "To" user
-      if (_userName == to || _userName == lastIntermediate || to == lastIntermediate) {
-        // Increment the intermediate counter
-        int counter = document['intermediate_counter'] ?? 0;
-        counter++;
-        // Update the current document's intermediate field and status
-        await collection?.update(
-          mongo.where.eq('_id', document['_id']),
-          mongo.modify
-              .set('intermediate_$counter', to)
-              .set('intermediate_counter', counter)
-              .set('status', false), // Set status to false for outgoing
-        );
+      // Increment the intermediate counter
+      int counter = document['intermediate_counter'] ?? 0;
+      counter++;
 
-        // Show dialog for successful outgoing form sent
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: Text("Outgoing Form Sent"),
-              actions: <Widget>[
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: Text("OK"),
-                ),
-              ],
-            );
-          },
-        );
-      } else {
-        // Show options for accepting or rejecting the outgoing request
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: Text("Outgoing Form"),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('Do you want to accept or reject the outgoing request?'),
-                ],
+      // Update the current document's intermediate field and status
+      await collection?.update(
+        mongo.where.eq('_id', document['_id']),
+        mongo.modify
+            .set('intermediate_$counter', to)
+            .set('intermediate_counter', counter)
+            .set('status', false), // Set status to false for outgoing
+      );
+      print('Outgoing document updated with new intermediate and status');
+
+      // Show dialog for successful outgoing form sent
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text("File Status Updated"),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: Text("OK"),
               ),
-              actions: <Widget>[
-                ElevatedButton(
-                  onPressed: () async {
-                    // Update the status to accepted
-                    await collection?.update(
-                      mongo.where.eq('_id', document['_id']),
-                      mongo.modify
-                          .set('status', 'accepted'),
-                    );
-                    Navigator.of(context).pop();
-                  },
-                  child: Text("Accept"),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    // Update the status to rejected
-                    await collection?.update(
-                      mongo.where.eq('_id', document['_id']),
-                      mongo.modify
-                          .set('status', 'rejected'),
-                    );
-                    Navigator.of(context).pop();
-                  },
-                  child: Text("Reject"),
-                ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: Text("Cancel"),
-                ),
-              ],
-            );
-          },
-        );
-      }
+            ],
+          );
+        },
+      );
     } else {
       // Handle case when document is not found
       print('Document not found');
     }
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: Text('Scan QR Code'),
-        ),
-        body: Padding(
+      appBar: AppBar(
+        title: Text('Scan QR Code'),
+      ),
+      body: Padding(
         padding: const EdgeInsets.all(16.0),
-    child: Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-    TextField(
-    controller: documentNumberController,
-    decoration: InputDecoration(
-    labelText: 'Enter Document Number',
-    suffixIcon: IconButton(
-    icon: Icon(Icons.qr_code_scanner),
-    onPressed: () async {
-    // Navigate to QR scanning screen and get the scanned data
-    String scannedData = await Navigator.push(
-    context,
-    MaterialPageRoute(builder: (context) => QRScanningScreen()),
-    );
-    // Set the scanned data to the text field
-    if (scannedData != null) {
-    documentNumberController.text = scannedData;
-    }
-    },
-    ),
-    ),
-    ),
-    SizedBox(height: 16.0),
-    Row(
-    children: [
-    Expanded(
-    child: ElevatedButton.icon(
-    onPressed: () async {
-      await handleIncomingAction();
-    },
-      icon: Icon(Icons.arrow_downward),
-      label: Text('Incoming'),
-    ),
-    ),
-      SizedBox(width: 16.0),
-      Expanded(
-        child: ElevatedButton.icon(
-          onPressed: () async {
-            // Show the outgoing form dialog
-            showDialog(
-              context: context,
-              builder: (BuildContext context) {
-                return AlertDialog(
-                  title: Text("Outgoing Form"),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextFormField(
-                        controller: toController,
-                        decoration: InputDecoration(
-                          labelText: 'To:',
-                        ),
-                      ),
-                    ],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: documentNumberController,
+              decoration: InputDecoration(
+                labelText: 'Enter Document Number',
+                suffixIcon: IconButton(
+                  icon: Icon(Icons.qr_code_scanner),
+                  onPressed: () async {
+                    // Navigate to QR scanning screen and get the scanned data
+                    String scannedData = await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => QRScanningScreen()),
+                    );
+                    // Set the scanned data to the text field
+                    if (scannedData != null) {
+                      documentNumberController.text = scannedData;
+                    }
+                  },
+                ),
+              ),
+            ),
+            SizedBox(height: 16.0),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      await handleIncomingAction();
+                    },
+                    icon: Icon(Icons.arrow_downward),
+                    label: Text('Incoming'),
                   ),
-                  actions: <Widget>[
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                      child: Text("Cancel"),
-                    ),
-                    ElevatedButton(
-                      onPressed: () async {
-                        await handleOutgoingAction();
-                        Navigator.of(context).pop();
-                      },
-                      child: Text("Send"),
-                    ),
-                  ],
-                );
-              },
-            );
-          },
-          icon: Icon(Icons.arrow_upward),
-          label: Text('Outgoing'),
+                ),
+                SizedBox(width: 16.0),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      // Show the outgoing form dialog
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: Text("Outgoing Form"),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                TextFormField(
+                                  controller: toController,
+                                  decoration: InputDecoration(
+                                    labelText: 'To:',
+                                  ),
+                                ),
+                              ],
+                            ),
+                            actions: <Widget>[
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                },
+                                child: Text("Cancel"),
+                              ),
+                              ElevatedButton(
+                                onPressed: () async {
+                                  await handleOutgoingAction();
+                                  Navigator.of(context).pop();
+                                },
+                                child: Text("Send"),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                    icon: Icon(Icons.arrow_upward),
+                    label: Text('Outgoing'),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
-    ],
-    ),
-    ],
-    ),
-        ),
     );
   }
 }
