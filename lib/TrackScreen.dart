@@ -11,7 +11,6 @@ class TrackScreen extends StatefulWidget {
 
 class _TrackScreenState extends State<TrackScreen> {
   TextEditingController documentNumberController = TextEditingController();
-
   String from = '';
   String to = '';
   List<String> intermediates = [];
